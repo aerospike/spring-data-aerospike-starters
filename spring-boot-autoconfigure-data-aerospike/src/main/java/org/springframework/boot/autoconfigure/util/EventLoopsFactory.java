@@ -1,8 +1,13 @@
 package org.springframework.boot.autoconfigure.util;
 
+import com.aerospike.client.async.EventLoopType;
 import com.aerospike.client.async.EventLoops;
 import com.aerospike.client.async.EventPolicy;
 import com.aerospike.client.async.NioEventLoops;
+import io.netty.channel.EventLoopGroup;
+import io.netty.channel.epoll.EpollEventLoopGroup;
+import io.netty.channel.kqueue.KQueueEventLoopGroup;
+import io.netty.channel.nio.NioEventLoopGroup;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.autoconfigure.aerospike.AerospikeProperties;
 import org.springframework.util.StringUtils;
@@ -79,61 +84,76 @@ public class EventLoopsFactory {
      */
     private static class NettyEventLoopsHolder {
 
+        private record EventLoopSelection(EventLoopGroup group, EventLoopType type) {}
+
         static EventLoops createNettyEventLoops(EventPolicy eventPolicy,
                                                 AerospikeProperties.EventLoopsProperties eventLoopsProperties) {
+            EventLoopSelection selection = chooseLoopGroup(eventLoopsProperties);
             // Import moved here - only loaded when needed
             return new com.aerospike.client.async.NettyEventLoops(
                     eventPolicy,
-                    chooseLoopGroup(eventLoopsProperties)
+                    selection.group(),
+                    selection.type()
             );
         }
 
-        private static io.netty.channel.EventLoopGroup chooseLoopGroup(
+        private static EventLoopSelection chooseLoopGroup(
                 AerospikeProperties.EventLoopsProperties eventLoopsProperties) {
             int threadsNumber = Math.max(eventLoopsProperties.getThreads(), 0);
 
             if (!StringUtils.hasText(eventLoopsProperties.groupType)) {
                 log.info("Proceeding with standard EventLoops group type 'NioEventLoopGroup'");
-                return new io.netty.channel.nio.NioEventLoopGroup(threadsNumber);
+                return new EventLoopSelection(
+                        new NioEventLoopGroup(threadsNumber), EventLoopType.NETTY_NIO);
             }
 
             return switch (eventLoopsProperties.groupType.toLowerCase()) {
                 case "epolleventloopgroup" -> createEpollEventLoopGroup(threadsNumber);
                 case "kqueueeventloopgroup" -> createKQueueEventLoopGroup(threadsNumber);
-                case "nioeventloopgroup" -> new io.netty.channel.nio.NioEventLoopGroup(threadsNumber);
+                case "nioeventloopgroup" -> new EventLoopSelection(
+                        new NioEventLoopGroup(threadsNumber), EventLoopType.NETTY_NIO);
                 default -> {
                     log.warn("Unexpected EventLoops group type '{}', proceeding with 'NioEventLoopGroup' instead",
                             eventLoopsProperties.groupType);
-                    yield new io.netty.channel.nio.NioEventLoopGroup(threadsNumber);
+                    yield new EventLoopSelection(
+                            new NioEventLoopGroup(threadsNumber), EventLoopType.NETTY_NIO
+                    );
                 }
             };
         }
 
-        private static io.netty.channel.EventLoopGroup createEpollEventLoopGroup(int threadsNumber) {
+        private static EventLoopSelection createEpollEventLoopGroup(int threadsNumber) {
             if (io.netty.channel.epoll.Epoll.isAvailable()) {
                 log.info("Using EpollEventLoopGroup for native Linux transport");
-                return new io.netty.channel.epoll.EpollEventLoopGroup(threadsNumber);
+                return new EventLoopSelection(
+                        new EpollEventLoopGroup(threadsNumber), EventLoopType.NETTY_EPOLL
+                );
             } else {
                 log.warn("EpollEventLoopGroup requested but Epoll is not available on this platform. " +
                                 "Cause: {}. Falling back to NioEventLoopGroup.",
                         io.netty.channel.epoll.Epoll.unavailabilityCause() != null
                                 ? io.netty.channel.epoll.Epoll.unavailabilityCause().getMessage()
                                 : "unknown");
-                return new io.netty.channel.nio.NioEventLoopGroup(threadsNumber);
+                return new EventLoopSelection(
+                        new NioEventLoopGroup(threadsNumber), EventLoopType.NETTY_NIO
+                );
             }
         }
 
-        private static io.netty.channel.EventLoopGroup createKQueueEventLoopGroup(int threadsNumber) {
+        private static EventLoopSelection createKQueueEventLoopGroup(int threadsNumber) {
             if (io.netty.channel.kqueue.KQueue.isAvailable()) {
                 log.info("Using KQueueEventLoopGroup for native macOS/BSD transport");
-                return new io.netty.channel.kqueue.KQueueEventLoopGroup(threadsNumber);
+                return new EventLoopSelection(
+                        new KQueueEventLoopGroup(threadsNumber), EventLoopType.NETTY_KQUEUE
+                );
             } else {
                 log.warn("KQueueEventLoopGroup requested but KQueue is not available on this platform. " +
                                 "Cause: {}. Falling back to NioEventLoopGroup.",
                         io.netty.channel.kqueue.KQueue.unavailabilityCause() != null
                                 ? io.netty.channel.kqueue.KQueue.unavailabilityCause().getMessage()
                                 : "unknown");
-                return new io.netty.channel.nio.NioEventLoopGroup(threadsNumber);
+                return new EventLoopSelection(
+                        new NioEventLoopGroup(threadsNumber), EventLoopType.NETTY_NIO);
             }
         }
     }
