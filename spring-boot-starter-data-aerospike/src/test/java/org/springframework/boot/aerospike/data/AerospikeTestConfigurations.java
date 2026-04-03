@@ -2,7 +2,7 @@ package org.springframework.boot.aerospike.data;
 
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.aerospike.data.city.City;
-import org.springframework.boot.autoconfigure.domain.EntityScan;
+import org.springframework.boot.persistence.autoconfigure.EntityScan;
 import org.springframework.context.annotation.Bean;
 import org.springframework.core.convert.converter.Converter;
 import org.springframework.data.aerospike.convert.AerospikeCustomConverters;
