@@ -42,7 +42,7 @@
         <spring-data-aerospike.version>6.0.0</spring-data-aerospike.version>
         <aerospike-reactor-client.version>10.0.0</aerospike-reactor-client.version>
         <aerospike-client.version>10.0.0</aerospike-client.version>
-        <embedded-aerospike.version>3.1.20</embedded-aerospike.version>
+        <embedded-aerospike.version>4.0.2</embedded-aerospike.version>
         <spring-cloud-starter.version>5.0.1</spring-cloud-starter.version>
         <rest-assured.version>6.0.0</rest-assured.version>
         <mockito.version>5.23.0</mockito.version>
