@@ -49,8 +49,8 @@ jobs:
       version: ${{ needs.extract-version.outputs.version }}
       jar-group-id: com.aerospike
       setup-java: true
-      java-version: "17"
-      java-distribution: temurin
+      java-version: 17
+      java-distribution: "temurin"
       gh-source-path: spring-data-aerospike-starters
       gh-retention-days: 1
       runs-on: ${{ vars.BUILD_CONTAINER_DISTRO_VERSION }}
