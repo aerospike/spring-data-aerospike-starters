@@ -6,7 +6,7 @@
     <parent>
         <groupId>org.springframework.boot</groupId>
         <artifactId>spring-boot-starter-parent</artifactId>
-        <version>4.0.6</version>
+        <version>4.1.0</version>
     </parent>
 
     <groupId>com.aerospike</groupId>
@@ -33,18 +33,18 @@
     </modules>
 
     <properties>
-        <revision>0.23.0</revision>
+        <revision>0.24.0</revision>
         <java.version>17</java.version>
         <maven.compiler.source>${java.version}</maven.compiler.source>
         <maven.compiler.target>${java.version}</maven.compiler.target>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
-        <aerospike-client.version>10.2.0</aerospike-client.version>
-        <aerospike-reactor-client.version>10.2.0</aerospike-reactor-client.version>
-        <spring-data-aerospike.version>6.1.0</spring-data-aerospike.version>
-        <embedded-aerospike.version>4.0.2</embedded-aerospike.version>
-        <netty.version>4.2.14.Final</netty.version> <!-- override lower default version in Spring BOM -->
-        <spring-cloud-starter.version>5.0.1</spring-cloud-starter.version>
+        <aerospike-client.version>10.4.0</aerospike-client.version>
+        <aerospike-reactor-client.version>10.4.0</aerospike-reactor-client.version>
+        <spring-data-aerospike.version>6.2.0</spring-data-aerospike.version>
+        <embedded-aerospike.version>4.0.3</embedded-aerospike.version>
+        <netty.version>4.2.16.Final</netty.version> <!-- override lower default version in Spring BOM -->
+        <spring-cloud-starter.version>5.0.2</spring-cloud-starter.version>
         <rest-assured.version>6.0.0</rest-assured.version>
         <mockito.version>5.23.0</mockito.version>
         <maven.gpg.plugin.version>1.6</maven.gpg.plugin.version>
@@ -149,6 +149,11 @@
                 <groupId>org.springframework.cloud</groupId>
                 <artifactId>spring-cloud-starter-bootstrap</artifactId>
                 <version>${spring-cloud-starter.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.fasterxml.jackson.core</groupId>
+                <artifactId>jackson-annotations</artifactId>
+                <version>2.21</version>
             </dependency>
             <dependency>
                 <groupId>org.mockito</groupId>
