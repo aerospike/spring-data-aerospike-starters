@@ -45,6 +45,7 @@
         <embedded-aerospike.version>4.0.3</embedded-aerospike.version>
         <netty.version>4.2.16.Final</netty.version> <!-- override lower default version in Spring BOM -->
         <spring-cloud-starter.version>5.0.2</spring-cloud-starter.version>
+        <jackson-2-bom.version>2.22.1</jackson-2-bom.version>
         <rest-assured.version>6.0.0</rest-assured.version>
         <mockito.version>5.23.0</mockito.version>
         <maven.gpg.plugin.version>1.6</maven.gpg.plugin.version>
@@ -151,9 +152,11 @@
                 <version>${spring-cloud-starter.version}</version>
             </dependency>
             <dependency>
-                <groupId>com.fasterxml.jackson.core</groupId>
-                <artifactId>jackson-annotations</artifactId>
-                <version>2.21</version>
+                <groupId>com.fasterxml.jackson</groupId>
+                <artifactId>jackson-bom</artifactId>
+                <version>${jackson-2-bom.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
             </dependency>
             <dependency>
                 <groupId>org.mockito</groupId>
