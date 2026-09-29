@@ -62,36 +62,94 @@ jobs:
 
         LOCAL_REPO=$(mvn help:evaluate -Dexpression=settings.localRepository -q -DforceStdout)
         GROUP_ID=$(mvn help:evaluate -Dexpression=project.groupId -q -DforceStdout)
-        ARTIFACT_ID=$(mvn help:evaluate -Dexpression=project.artifactId -q -DforceStdout)
         VERSION=$(mvn help:evaluate -Dexpression=project.version -q -DforceStdout)
 
         GROUP_PATH=$(echo "$GROUP_ID" | tr '.' '/')
-        ARTIFACT_PATH="$LOCAL_REPO/$GROUP_PATH/$ARTIFACT_ID/$VERSION"
 
-        echo "ARTIFACT_PATH: $ARTIFACT_PATH"
-        echo "Copying artifacts to ./build/"
+        EXPECTED_ARTIFACT_IDS=(
+          spring-data-aerospike-starters
+          spring-boot-autoconfigure-data-aerospike
+          spring-boot-starter-aerospike
+          spring-boot-starter-aerospike-reactive
+          spring-boot-starter-data-aerospike
+          spring-boot-starter-data-aerospike-reactive
+        )
 
-        for file in "$ARTIFACT_PATH"/*; do
-          if [[ "$file" == *"-jar-with-dependencies.jar" ]] || [[ "$file" == *"_remote.repositories" ]]; then
-            continue
+        MODULE_ARTIFACT_IDS=(
+          spring-boot-autoconfigure-data-aerospike
+          spring-boot-starter-aerospike
+          spring-boot-starter-aerospike-reactive
+          spring-boot-starter-data-aerospike
+          spring-boot-starter-data-aerospike-reactive
+        )
+
+        copy_required_file() {
+          local source_file="$1"
+
+          if [[ ! -f "$source_file" ]]; then
+            echo "ERROR: Expected Maven artifact file not found: $source_file" >&2
+            exit 1
           fi
-          cp "$file" build/
+
+          cp "$source_file" build/
+        }
+
+        copy_maven_artifact() {
+          local artifact_id="$1"
+          shift
+          local artifact_path="$LOCAL_REPO/$GROUP_PATH/$artifact_id/$VERSION"
+          local classifier
+
+          echo "Staging Maven artifact: $artifact_id from $artifact_path"
+
+          if [[ ! -d "$artifact_path" ]]; then
+            echo "ERROR: Expected Maven artifact directory not found: $artifact_path" >&2
+            exit 1
+          fi
+
+          copy_required_file "$artifact_path/$artifact_id-$VERSION.pom"
+
+          for classifier in "$@"; do
+            copy_required_file "$artifact_path/$artifact_id-$VERSION$classifier.jar"
+          done
+        }
+
+        echo "Copying expected Maven artifacts to ./build/"
+
+        rm -rf build
+        mkdir -p build
+
+        copy_maven_artifact "spring-data-aerospike-starters"
+
+        for artifact_id in "${MODULE_ARTIFACT_IDS[@]}"; do
+          copy_maven_artifact "$artifact_id" "" "-sources" "-javadoc"
         done
 
-        PARENT_ARTIFACT_ID=spring-data-aerospike-starters
-        PARENT_PATH="$LOCAL_REPO/$GROUP_PATH/$PARENT_ARTIFACT_ID/$VERSION"
+        mapfile -t copied_poms < <(find build -maxdepth 1 -type f -name "*.pom" -printf "%f\n" | sort)
 
-        echo "Parent artifact path: $PARENT_PATH"
+        expected_pom_names=()
+        for artifact_id in "${EXPECTED_ARTIFACT_IDS[@]}"; do
+          expected_pom_names+=("$artifact_id-$VERSION.pom")
+        done
+        mapfile -t expected_poms < <(printf '%s\n' "${expected_pom_names[@]}" | sort)
 
-        if [ -d "$PARENT_PATH" ]; then
-          echo "Copying parent POM..."
-          cp "$PARENT_PATH"/*.pom build/
-          cp "$PARENT_PATH"/*.asc build/ 2>/dev/null || true
-        else
-          echo "WARNING: Parent POM not found in $PARENT_PATH"
+        if [[ "${copied_poms[*]}" != "${expected_poms[*]}" ]]; then
+          echo "ERROR: Staged POM set does not match expected Maven artifacts." >&2
+          echo "Expected POMs:" >&2
+          printf '  %s\n' "${expected_poms[@]}" >&2
+          echo "Copied POMs:" >&2
+          printf '  %s\n' "${copied_poms[@]}" >&2
+          exit 1
         fi
 
-        ls -lar build/
+        example_artifact=$(find build -maxdepth 1 -type f -name "*example*" -print -quit)
+        if [[ -n "$example_artifact" ]]; then
+          echo "ERROR: Example artifact was staged unexpectedly: $example_artifact" >&2
+          exit 1
+        fi
+
+        echo "Final staged build artifacts:"
+        find build -maxdepth 1 -type f -printf "%f\n" | sort
     secrets:
       gpg-private-key: ${{ secrets.GPG_SECRET_KEY }}
       gpg-public-key: ${{ secrets.GPG_PUBLIC_KEY }}
@@ -109,6 +167,7 @@ jobs:
       oidc-provider-name: ${{ vars.OIDC_PROVIDER_NAME }}
       oidc-audience: ${{ vars.OIDC_AUDIENCE }}
       dry-run: false
+      gh-bundle-metadata-artifact-name: bundle-metadata
 
   promote-to-dev:
     needs: [extract-version, create-release-bundle]
